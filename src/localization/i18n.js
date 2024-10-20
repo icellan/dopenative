@@ -12,13 +12,15 @@ export const TranslationProvider = ({ children, translations }) => {
 
   const [locale, setLocale] = useState(locales[0])
 
+  const regionCode = locale?.regionCode
+
   console.log('setting up translations')
   console.log(`local locale: ${JSON.stringify(locale)} `)
   console.log(`default locale: ${JSON.stringify(locales[0])} `)
 
   const i18n = new I18n(translations);
 
-  i18n.locale = locale?.regionCode
+  i18n.locale = regionCode
   i18n.translations = translations
   i18n.fallbacks = true
   // update layout direction
@@ -26,25 +28,26 @@ export const TranslationProvider = ({ children, translations }) => {
 
   const localized = useCallback(
     (key, config) =>
-      i18n.t(key, { ...config, locale: locale?.regionCode }).includes('missing')
+      i18n.t(key, { ...config, locale: regionCode }).includes('missing')
         ? key
-        : i18n.t(key, { ...config, locale: locale?.regionCode }),
-    [i18n, locale],
+        : i18n.t(key, { ...config, locale: regionCode }),
+    [i18n, regionCode],
   )
 
   const getLocale = useCallback(async () => {
     const localeJSON = await Storage.getItem('locale')
-    console.log(
-      `getting locale from storage and writing it to memory ${localeJSON}`,
-    )
+    console.log(`getting locale from storage and writing it to memory ${localeJSON}`)
 
-    // If we have a locale stored in local storage, that is high priority (it overrides the current device locale)
-    setLocale(localeJSON !== null ? JSON.parse(localeJSON) : locale)
+    const localeFromJSON = JSON.parse(localeJSON)
+    if (localeFromJSON?.regionCode !== locale.regionCode) {
+      // If we have a locale stored in local storage, that is high priority (it overrides the current device locale)
+      setLocale(localeJSON !== null ? localeFromJSON : locale)
+    }
   }, [setLocale, locale])
 
   useEffect(() => {
     getLocale().catch(e => {
-      console.log('error getting locale', e)
+      console.log('error getting locale', e);
     })
   }, [getLocale])
 
