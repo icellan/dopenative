@@ -1,21 +1,24 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { I18nManager } from 'react-native'
 import Storage from '@react-native-async-storage/async-storage'
-import i18n from 'i18n-js'
+import { I18n } from "i18n-js";
 import { getLocales } from 'expo-localization'
 
 export const TranslationContext = React.createContext({})
 
 export const TranslationProvider = ({ children, translations }) => {
   const locales = getLocales()
+  console.log('locales', locales)
 
   const [locale, setLocale] = useState(locales[0])
 
   console.log('setting up translations')
-  console.log(`local locale: ${locale} `)
-  console.log(`default locale: ${locales[0]} `)
+  console.log(`local locale: ${JSON.stringify(locale)} `)
+  console.log(`default locale: ${JSON.stringify(locales[0])} `)
 
-  i18n.locale = locale
+  const i18n = new I18n(translations);
+
+  i18n.locale = locale?.regionCode
   i18n.translations = translations
   i18n.fallbacks = true
   // update layout direction
@@ -23,10 +26,10 @@ export const TranslationProvider = ({ children, translations }) => {
 
   const localized = useCallback(
     (key, config) =>
-      i18n.t(key, { ...config, locale }).includes('missing')
+      i18n.t(key, { ...config, locale: locale?.regionCode }).includes('missing')
         ? key
-        : i18n.t(key, { ...config, locale }),
-    [locale],
+        : i18n.t(key, { ...config, locale: locale?.regionCode }),
+    [i18n, locale],
   )
 
   const getLocale = useCallback(async () => {
