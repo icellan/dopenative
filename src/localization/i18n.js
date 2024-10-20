@@ -2,22 +2,24 @@ import React, { useCallback, useEffect, useState } from 'react'
 import { I18nManager } from 'react-native'
 import Storage from '@react-native-async-storage/async-storage'
 import i18n from 'i18n-js'
-import * as Localization from 'expo-localization'
+import { getLocales } from 'expo-localization'
 
 export const TranslationContext = React.createContext({})
 
 export const TranslationProvider = ({ children, translations }) => {
-  const [locale, setLocale] = useState(Localization.locale)
+  const locales = getLocales()
+
+  const [locale, setLocale] = useState(locales[0])
 
   console.log('setting up translations')
-  console.log(`local locale: ${Localization.locale} `)
-  console.log(`default locale: ${locale} `)
+  console.log(`local locale: ${locale} `)
+  console.log(`default locale: ${locales[0]} `)
 
   i18n.locale = locale
   i18n.translations = translations
   i18n.fallbacks = true
   // update layout direction
-  I18nManager.forceRTL(Localization.isRTL)
+  I18nManager.forceRTL(locale.textDirection === 'rtl')
 
   const localized = useCallback(
     (key, config) =>
@@ -34,16 +36,20 @@ export const TranslationProvider = ({ children, translations }) => {
     )
 
     // If we have a locale stored in local storage, that is high priority (it overrides the current device locale)
-    setLocale(localeJSON !== null ? localeJSON : Localization.locale)
-  }, [setLocale])
+    setLocale(localeJSON !== null ? JSON.parse(localeJSON) : locale)
+  }, [setLocale, locale])
 
   useEffect(() => {
-    getLocale()
+    getLocale().catch(e => {
+      console.log('error getting locale', e)
+    })
   }, [getLocale])
 
   useEffect(() => {
-    console.log(`write to storage locale: ${locale}`)
-    Storage.setItem('locale', locale)
+    console.log(`write to storage locale: ${locale.regionCode}`)
+    Storage.setItem('locale', JSON.stringify(locale)).catch(e => {
+      console.log('error setting locale in storage', e)
+    });
   }, [locale])
 
   const value = {
